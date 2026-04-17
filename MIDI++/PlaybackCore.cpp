@@ -1597,7 +1597,7 @@ void VirtualPianoPlayer::adjust_playback_speed(double factor) {
         playback_start_time = now_tsc;
         last_resume_tsc     = now_tsc;
     }
-    else {
+    else if (!paused.load(std::memory_order_acquire)) {
         // Calculate how much time has elapsed at current_speed
         uint64_t tick_diff = now_tsc - last_resume_tsc;
         // Convert to nanoseconds
@@ -1605,6 +1605,13 @@ void VirtualPianoPlayer::adjust_playback_speed(double factor) {
         total_adjusted_time += std::chrono::nanoseconds(
             static_cast<std::chrono::nanoseconds::rep>(elapsed_ns + 0.5)
         );
+        last_resume_tsc = now_tsc;
+    }
+    else {
+        // Paused: position is already in total_adjusted_time (pause folded in the
+        // TSC span), but last_resume_tsc was not moved to the pause instant—so
+        // integrating here would double-count and jump the clock, firing a burst
+        // of due notes on resume, only refresh the TSC anchor and change speed
         last_resume_tsc = now_tsc;
     }
 
