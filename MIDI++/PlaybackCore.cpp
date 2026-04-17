@@ -714,6 +714,12 @@ void VirtualPianoPlayer::play_notes() {
             });
             fut.get();
         }
+
+        if (current_index >= note_buffer.size())
+        {
+            should_stop.store(true, std::memory_order_release);
+            break;
+        }
     }
 
     if (mmcss_handle) {
