@@ -263,7 +263,7 @@ void MIDIConnect::SetActive(bool active) {
                 SyscallNumber = GetNtUserSendInputSyscallNumber();
                 InitializeNtUserSendInputCall();
             }
-            catch (const std::exception& e) {
+            catch (const std::exception&) {
                 m_isActive.store(false, std::memory_order_release);
                 return;
             }
@@ -337,7 +337,7 @@ void __stdcall MIDIConnect::RtMidiCallback(double /*deltaTime*/,
         break;
     }
 
-    if (inputCount > 0) NtUserSendInputCall(inputCount, batched, sizeof(INPUT));
+    if (inputCount > 0) NtUserSendInputCall((ULONG)inputCount, batched, sizeof(INPUT));
 
     self->m_inCallback.store(false, std::memory_order_release);
 }

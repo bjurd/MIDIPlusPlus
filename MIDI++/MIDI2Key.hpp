@@ -10,6 +10,7 @@
 #include "PlaybackSystem.hpp" // Assumes this includes VirtualPianoPlayer
 #define CACHE_LINE_SIZE 64
 #define MAX_BATCH_INPUTS 32
+
 // MIDI command constants
 constexpr unsigned char MIDI_NOTE_ON = 0x90;
 constexpr unsigned char MIDI_NOTE_OFF = 0x80;

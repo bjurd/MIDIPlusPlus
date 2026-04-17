@@ -103,7 +103,7 @@ private:
     static constexpr int POINT_COUNT = 32;
     static constexpr int MAX_VELOCITY = 127;
     static constexpr float CURVE_LINE_WIDTH = 2.0f;
-    static constexpr int HIT_RADIUS = 12.0f;
+    static constexpr int HIT_RADIUS = 12;
 
     // Font sizes
     static constexpr int LARGE_FONT_SIZE = 16;
