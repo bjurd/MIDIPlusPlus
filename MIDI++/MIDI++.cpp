@@ -479,7 +479,7 @@ protected:
         size_t start = 0;
         for (size_t i = 0; i < static_cast<size_t>(n); ++i) {
             if (startOfLine) {
-                if (timestampCache.empty()) updateTimestampCache();
+                updateTimestampCache();
                 chunk.append(timestampCache);
                 startOfLine = false;
             }
