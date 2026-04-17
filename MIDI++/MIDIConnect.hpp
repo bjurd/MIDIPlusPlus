@@ -34,7 +34,7 @@ private:
         {0x48, 0x48}, {0x49, 0x49}, {0x4A, 0x4A}, {0x4E, 0x4E}
     };
 
-    static constexpr size_t MAX_BATCH_INPUTS = 32;
+#define MAX_BATCH_INPUTS 32
     alignas(CACHE_LINE_SIZE) std::array<INPUT, MAX_BATCH_INPUTS> m_batchedInputs;
     alignas(CACHE_LINE_SIZE) std::array<std::array<std::array<INPUT, 10>, 128>, 128> m_noteMapping;
     alignas(CACHE_LINE_SIZE) std::array<std::array<INPUT, 10>, 128> m_sustainMapping;
