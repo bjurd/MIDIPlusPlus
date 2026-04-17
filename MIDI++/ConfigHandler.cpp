@@ -1,4 +1,5 @@
 #include "config.hpp"
+#include <cctype>
 #include <fstream>
 #include <iostream>
 #include <algorithm>
@@ -52,6 +53,23 @@ namespace midi {
     }
 
     void PlaybackSettings::validate() const {
+        std::string m = VELOCITY_KEYPRESS_MODIFIER;
+        for (char& c : m) {
+            c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+        }
+        static const char* allowed[] = { "NONE", "SHIFT", "ALT", "CTRL" };
+        bool ok = false;
+        for (const char* a : allowed) {
+            if (m == a) {
+                ok = true;
+                break;
+            }
+        }
+        if (!ok) {
+            throw ConfigException(
+                "VELOCITY_KEYPRESS_MODIFIER must be NONE, SHIFT, ALT, or CTRL");
+        }
+
         for (const auto& curve : customVelocityCurves) {
             if (curve.name.empty()) {
                 throw ConfigException("Custom velocity curve name cannot be empty");
@@ -276,6 +294,7 @@ namespace midi {
             {"MIDI_SETTINGS", json{{"DETECT_DRUMS", c.midi.DETECT_DRUMS}}},
             {"AUTOPLAYER_TIMING_ACCURACY", c.autoplayer_timing},
             {"STACKED_NOTE_HANDLING_MODE", Config::noteHandlingModeToString(c.playback.noteHandlingMode)},
+            {"VELOCITY_KEYPRESS_MODIFIER", c.playback.VELOCITY_KEYPRESS_MODIFIER},
             {"CUSTOM_VELOCITY_CURVES", json::array()},
             {"PLAYLIST_FILES", c.playlistFiles},
             {"UI_SETTINGS", c.ui}
@@ -303,6 +322,10 @@ namespace midi {
         if (j.contains("STACKED_NOTE_HANDLING_MODE")) {
             std::string mode = j.at("STACKED_NOTE_HANDLING_MODE").get<std::string>();
             c.playback.noteHandlingMode = Config::stringToNoteHandlingMode(mode);
+        }
+
+        if (j.contains("VELOCITY_KEYPRESS_MODIFIER")) {
+            j.at("VELOCITY_KEYPRESS_MODIFIER").get_to(c.playback.VELOCITY_KEYPRESS_MODIFIER);
         }
 
         if (j.contains("CUSTOM_VELOCITY_CURVES")) {

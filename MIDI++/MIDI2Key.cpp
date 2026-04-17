@@ -1,4 +1,6 @@
 ﻿#include "MIDI2Key.hpp"
+#include "config.hpp"
+#include <cctype>
 #include <cstring>
 #include <algorithm>
 #include <stdexcept>
@@ -118,19 +120,55 @@ namespace MIDITables {
     }
 
     void PrecomputeVelocityKeyData(VirtualPianoPlayer& player) {
+        std::string mod = midi::Config::getInstance().playback.VELOCITY_KEYPRESS_MODIFIER;
+        for (char& c : mod) {
+            c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+        }
+        if (mod.empty())
+            mod = "ALT";
+
         for (int vel = 0; vel < 128; ++vel) {
             std::string keyStr = player.getVelocityKey(vel);
             VelocityKeyData& data = g_velocityData[vel];
             std::memset(&data, 0, sizeof(VelocityKeyData));
-            if (!keyStr.empty()) {
-                char keyChar = keyStr[0];
-                WORD scanCode = g_scanCodeTable[(unsigned char)keyChar];
-                data.keyChar = keyChar;
-                data.hasValidKey = true;
+            if (keyStr.empty())
+                continue;
+            char keyChar = keyStr[0];
+            WORD scanCode = g_scanCodeTable[(unsigned char)keyChar];
+            data.keyChar = keyChar;
+            data.hasValidKey = true;
+
+            if (mod == "NONE") {
+                data.inputs[0] = MakeKeyboardInput(scanCode, SC_FLAG);
+                data.inputs[1] = MakeKeyboardInput(scanCode, KU_FLAG);
+                data.inputCount = 2;
+            }
+            else if (mod == "SHIFT") {
+                data.inputs[0] = MakeKeyboardInput(SHIFT_SCAN, SC_FLAG);
+                data.inputs[1] = MakeKeyboardInput(scanCode, SC_FLAG);
+                data.inputs[2] = MakeKeyboardInput(scanCode, KU_FLAG);
+                data.inputs[3] = MakeKeyboardInput(SHIFT_SCAN, KU_FLAG);
+                data.inputCount = 4;
+            }
+            else if (mod == "ALT") {
                 data.inputs[0] = MakeKeyboardInput(ALT_SCAN, SC_FLAG);
                 data.inputs[1] = MakeKeyboardInput(scanCode, SC_FLAG);
                 data.inputs[2] = MakeKeyboardInput(scanCode, KU_FLAG);
                 data.inputs[3] = MakeKeyboardInput(ALT_SCAN, KU_FLAG);
+                data.inputCount = 4;
+            }
+            else if (mod == "CTRL") {
+                data.inputs[0] = MakeKeyboardInput(CTRL_SCAN, SC_FLAG);
+                data.inputs[1] = MakeKeyboardInput(scanCode, SC_FLAG);
+                data.inputs[2] = MakeKeyboardInput(scanCode, KU_FLAG);
+                data.inputs[3] = MakeKeyboardInput(CTRL_SCAN, KU_FLAG);
+                data.inputCount = 4;
+            }
+            else {
+                data.inputs[0] = MakeKeyboardInput(SHIFT_SCAN, SC_FLAG);
+                data.inputs[1] = MakeKeyboardInput(scanCode, SC_FLAG);
+                data.inputs[2] = MakeKeyboardInput(scanCode, KU_FLAG);
+                data.inputs[3] = MakeKeyboardInput(SHIFT_SCAN, KU_FLAG);
                 data.inputCount = 4;
             }
         }

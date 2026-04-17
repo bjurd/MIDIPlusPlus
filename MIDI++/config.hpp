@@ -86,6 +86,7 @@ namespace midi {
         VelocityCurveType velocityCurve = VelocityCurveType::LinearCoarse;
         NoteHandlingMode noteHandlingMode = NoteHandlingMode::LIFO;
         std::vector<CustomVelocityCurve> customVelocityCurves;
+        std::string VELOCITY_KEYPRESS_MODIFIER = "ALT";
         void validate() const;
     };
 

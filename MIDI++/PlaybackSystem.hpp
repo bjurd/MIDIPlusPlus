@@ -224,6 +224,7 @@ public:
     void setVelocityCurveIndex(size_t index);
     std::string getVelocityCurveName(midi::VelocityCurveType curveType);
     std::string getVelocityKey(int targetVelocity);
+    std::string getVelocityKeypressKeyString(int targetVelocity);
 
     // Sustain settings
     SustainMode currentSustainMode{ SustainMode::IG };
@@ -255,7 +256,6 @@ public:
     void hotkey_listener();
     void emergency_exit();
     bool isTrackEnabled(int trackIndex) const;
-    WORD vkToScanCode(int vk);
     std::condition_variable playback_cv;
     std::mutex playback_cv_mutex;
     unsigned long long last_resume_tsc;
@@ -290,6 +290,7 @@ private:
     void KeyPress(std::string_view key, bool press);
     int stringToVK(std::string_view keyName);
     void sendVirtualKey(WORD vk, bool is_press);
+    void tapVirtualKey(WORD vk);
     void pressKey(WORD vk);
     void releaseKey(WORD vk);
     void press_key(std::string_view note) noexcept;

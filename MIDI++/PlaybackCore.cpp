@@ -1,6 +1,7 @@
 ﻿#include "PlaybackSystem.hpp"
 #include "InputHeader.h"
 #include "timer.h"  // <-- The improved "rdtsc_timer.h" you created
+#include <cctype>
 #include <cmath>
 #include <algorithm>
 #include <future>
@@ -135,10 +136,12 @@ static KeySequence computeKeySequence(const std::string& key) {
     // Detect modifiers
     bool hasAlt  = (key.find("alt+")  != std::string::npos);
     bool hasCtrl = (key.find("ctrl+") != std::string::npos);
+    bool hasShiftPrefix = (key.find("shift+") != std::string::npos);
 
     char lastChar   = key.empty() ? '\0' : key.back();
     bool shifted    = std::isupper(static_cast<unsigned char>(lastChar)) ||
                       std::ispunct(static_cast<unsigned char>(lastChar));
+    const bool wantShift = shifted || hasShiftPrefix;
     char lookupChar = shifted ? static_cast<char>(std::tolower(lastChar)) : lastChar;
 
     WORD mainScan   = VirtualPianoPlayer::SCAN_TABLE_AUTO[static_cast<unsigned char>(lookupChar)];
@@ -169,7 +172,7 @@ static KeySequence computeKeySequence(const std::string& key) {
         input.ki.dwFlags = KEYEVENTF_SCANCODE;
         pressSeq.push_back(input);
     }
-    if (shifted) {
+    if (wantShift) {
         INPUT input = {};
         input.type = INPUT_KEYBOARD;
         input.ki.wScan = SHIFT_SCAN;
@@ -183,7 +186,7 @@ static KeySequence computeKeySequence(const std::string& key) {
         input.ki.dwFlags = KEYEVENTF_SCANCODE;
         pressSeq.push_back(input);
     }
-    if (shifted) {
+    if (wantShift) {
         INPUT input = {};
         input.type = INPUT_KEYBOARD;
         input.ki.wScan = SHIFT_SCAN;
@@ -221,7 +224,7 @@ static KeySequence computeKeySequence(const std::string& key) {
         input.ki.dwFlags = KEYEVENTF_SCANCODE;
         releaseSeq.push_back(input);
     }
-    if (shifted) {
+    if (wantShift) {
         INPUT input = {};
         input.type = INPUT_KEYBOARD;
         input.ki.wScan = SHIFT_SCAN;
@@ -235,7 +238,7 @@ static KeySequence computeKeySequence(const std::string& key) {
         input.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
         releaseSeq.push_back(input);
     }
-    if (shifted) {
+    if (wantShift) {
         INPUT input = {};
         input.type = INPUT_KEYBOARD;
         input.ki.wScan = SHIFT_SCAN;
@@ -466,8 +469,9 @@ VirtualPianoPlayer::VirtualPianoPlayer() noexcept(false)
     }
     try {
         sustain_key_code = stringToVK(midi::Config::getInstance().hotkeys.SUSTAIN_KEY);
-        volume_up_key_code = vkToScanCode(stringToVK(midi::Config::getInstance().hotkeys.VOLUME_UP_KEY));
-        volume_down_key_code = vkToScanCode(stringToVK(midi::Config::getInstance().hotkeys.VOLUME_DOWN_KEY));
+        // Store VKs; volume uses tapVirtualKey (not arrowsend's scan+extended path).
+        volume_up_key_code   = static_cast<WORD>(stringToVK(midi::Config::getInstance().hotkeys.VOLUME_UP_KEY));
+        volume_down_key_code = static_cast<WORD>(stringToVK(midi::Config::getInstance().hotkeys.VOLUME_DOWN_KEY));
     }
     catch (const std::exception& e) {
         CloseSplashScreen();
@@ -771,9 +775,9 @@ void VirtualPianoPlayer::reset_volume() {
                 current_volume.load(std::memory_order_relaxed);
     int steps = std::abs(diff) /
                 midi::Config::getInstance().volume.VOLUME_STEP;
-    WORD sc   = (diff > 0) ? volume_up_key_code : volume_down_key_code;
+    WORD vk = (diff > 0) ? volume_up_key_code : volume_down_key_code;
     for (int i = 0; i < steps; ++i) {
-        arrowsend(sc, true);
+        tapVirtualKey(vk);
     }
     current_volume.store(midi::Config::getInstance().volume.INITIAL_VOLUME,
                          std::memory_order_relaxed);
@@ -935,10 +939,6 @@ int VirtualPianoPlayer::stringToVK(std::string_view keyName) {
     );
 }
 
-WORD VirtualPianoPlayer::vkToScanCode(int vk) {
-    return static_cast<WORD>(MapVirtualKey(vk, MAPVK_VK_TO_VSC));
-}
-
 void VirtualPianoPlayer::sendVirtualKey(WORD vk, bool press) {
     INPUT in{};
     in.type    = INPUT_KEYBOARD;
@@ -948,6 +948,11 @@ void VirtualPianoPlayer::sendVirtualKey(WORD vk, bool press) {
         in.ki.dwFlags |= KEYEVENTF_KEYUP;
     }
     NtUserSendInputCall(1, &in, sizeof(INPUT));
+}
+
+void VirtualPianoPlayer::tapVirtualKey(WORD vk) {
+    sendVirtualKey(vk, true);
+    sendVirtualKey(vk, false);
 }
 
 void VirtualPianoPlayer::pressKey(WORD vk) {
@@ -1071,6 +1076,23 @@ std::string VirtualPianoPlayer::getVelocityKey(int targetVelocity) {
     return std::string(1, velocityKeys[(idx < 32) ? idx : 31]);
 }
 
+std::string VirtualPianoPlayer::getVelocityKeypressKeyString(int targetVelocity) {
+    std::string base = getVelocityKey(targetVelocity);
+    std::string mod  = midi::Config::getInstance().playback.VELOCITY_KEYPRESS_MODIFIER;
+    for (char& c : mod) {
+        c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    }
+    if (mod.empty() || mod == "NONE")
+        return base;
+    if (mod == "SHIFT")
+        return "shift+" + base;
+    if (mod == "ALT")
+        return "alt+" + base;
+    if (mod == "CTRL")
+        return "ctrl+" + base;
+    return "shift+" + base;
+}
+
 void VirtualPianoPlayer::toggle_88_key_mode() {
     eightyEightKeyModeActive = !eightyEightKeyModeActive;
     std::cout << "[88-KEY MODE] "
@@ -1103,7 +1125,9 @@ void VirtualPianoPlayer::toggle_velocity_keypress() {
     std::cout << "[VELOCITY KEY] "
               << (newVal ? "Enabled" : "Disabled") << "\n";
     if (newVal) {
-        std::cout << "[WARNING] ALT+key combos in use; ensure no conflicting overlays.\n";
+        std::cout << "[WARNING] Modifier "
+                  << midi::Config::getInstance().playback.VELOCITY_KEYPRESS_MODIFIER
+                  << " (set VELOCITY_KEYPRESS_MODIFIER: SHIFT for browsers, ALT legacy).\n";
     }
 }
 
@@ -1128,7 +1152,7 @@ void VirtualPianoPlayer::calibrate_volume() {
 
     // Force volume down many times
     for (int i = 0; i < 50; ++i) {
-        arrowsend(volume_down_key_code, true);
+        tapVirtualKey(volume_down_key_code);
         for (volatile int j = 0; j < 8000; ++j) {} // small busy loop
     }
     double cf = (vc.INITIAL_VOLUME > 150) ? 1.1 : 1.0;
@@ -1137,11 +1161,12 @@ void VirtualPianoPlayer::calibrate_volume() {
                                 vc.VOLUME_STEP) * cf));
 
     for (int i = 0; i < steps; ++i) {
-        arrowsend(volume_up_key_code, true);
+        tapVirtualKey(volume_up_key_code);
         for (volatile int j = 0; j < (8000 + (i > 10 ? (i - 10) * 300 : 0)); ++j) {}
     }
 
     current_volume.store(vc.INITIAL_VOLUME, std::memory_order_relaxed);
+    std::cout << "[AutoVol] Changed volume to " << current_volume.load() << std::endl;
 }
 
 void VirtualPianoPlayer::AdjustVolumeBasedOnVelocity(int velocity) noexcept {
@@ -1153,12 +1178,13 @@ void VirtualPianoPlayer::AdjustVolumeBasedOnVelocity(int velocity) noexcept {
     int diff       = target_vol - current_vol;
     int step_size  = midi::Config::getInstance().volume.VOLUME_STEP;
     if (std::abs(diff) >= step_size) {
-        WORD sc = (diff > 0) ? volume_up_key_code : volume_down_key_code;
+        WORD vk = (diff > 0) ? volume_up_key_code : volume_down_key_code;
         int steps = std::abs(diff) / step_size;
         for (int i = 0; i < steps; ++i) {
-            arrowsend(sc, true);
+            tapVirtualKey(vk);
         }
         current_volume.store(target_vol, std::memory_order_relaxed);
+        std::cout << "[Velocity] Changed volume to " << current_volume.load() << std::endl;
     }
 }
 
@@ -1717,7 +1743,7 @@ void VirtualPianoPlayer::execute_note_event(const NoteEvent& event) noexcept {
             if (enable_velocity_keypress.load(std::memory_order_relaxed) &&
                 event.velocity != 0)
             {
-                std::string velocityKey = "alt+" + getVelocityKey(event.velocity);
+                std::string velocityKey = getVelocityKeypressKeyString(event.velocity);
                 if (velocityKey != lastPressedKey) {
                     KeyPress(velocityKey, true);
                     KeyPress(velocityKey, false);
