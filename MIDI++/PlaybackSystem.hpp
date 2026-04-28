@@ -184,6 +184,7 @@ public:
     // Other operations
     void release_all_keys();
     void calibrate_volume();
+    void reset_volume();
     void process_tracks(const MidiFile& midi_file);
 
     // Static handle for command event
@@ -284,7 +285,6 @@ private:
     void execute_note_event(const NoteEvent& event) noexcept;
     void handle_sustain_event(const NoteEvent& event);
     size_t find_next_event_index(const std::chrono::nanoseconds& target_time);
-    void reset_volume();
     void initializeKeyCache();
     void KeyPress(std::string_view key, bool press);
     int stringToVK(std::string_view keyName);

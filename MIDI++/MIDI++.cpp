@@ -1492,7 +1492,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
 
                     if (g_toggleStates[ID_BTN_VOLADJ]) {
                         FocusRobloxWindow();
-                        g_player->calibrate_volume();
+                        g_player->reset_volume();
                     }
 
                     std::cout << "[Load] Loaded: " << path << "\n";
