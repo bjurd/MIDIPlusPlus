@@ -61,8 +61,8 @@ namespace midi {
     };
 
     struct AutoplayerTimingAccuracy {
-        int MAX_PASSES = 20;
-        double MEASURE_SEC = 1.0;
+        int MAX_PASSES = 5;
+        double MEASURE_SEC = 0.1;
 
         void validate() const;
     };

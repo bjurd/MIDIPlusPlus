@@ -19,8 +19,6 @@ enum {
 static double    __cpu_freq = 0.0;  // Estimated CPU frequency in Hz
 static unsigned  __timer_status = RDTSC_TIMER_ERR_CPU_FREQ;
 
-static int    MAX_PASSES = midi::Config::getInstance().autoplayer_timing.MAX_PASSES;    
-static double MEASURE_SEC = midi::Config::getInstance().autoplayer_timing.MEASURE_SEC;  
 static constexpr double MIN_ACCEPTABLE_FREQ_HZ = 1e5; // Must be above 100 kHz
 static DWORD_PTR __pin_thread_to_core(int coreIndex = 0)
 {
@@ -90,8 +88,7 @@ static double __measure_tsc_freq_once(double measureTimeSec, int coreIndex)
 /**
  * Calibrate TSC frequency by running multiple passes and picking the median.
  */
-static double __timer_calculate_cpu_freq(int passes = MAX_PASSES,
-    double measureTimeSec = MEASURE_SEC)
+static double __timer_calculate_cpu_freq(int passes, double measureTimeSec)
 {
     if (passes <= 0) passes = 1;
 
@@ -123,7 +120,10 @@ static double __timer_calculate_cpu_freq(int passes = MAX_PASSES,
  */
 static void rdtsc_timer_init()
 {
-    double freq = __timer_calculate_cpu_freq(MAX_PASSES, MEASURE_SEC);
+    const auto& timing = midi::Config::getInstance().autoplayer_timing;
+    const int passes = std::max(1, timing.MAX_PASSES);
+    const double measureSec = std::max(1e-4, timing.MEASURE_SEC);
+    double freq = __timer_calculate_cpu_freq(passes, measureSec);
     if (freq >= MIN_ACCEPTABLE_FREQ_HZ) {
         __cpu_freq = freq;
         __timer_status = RDTSC_TIMER_READY;
