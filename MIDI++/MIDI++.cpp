@@ -546,6 +546,51 @@ static void SetAlwaysOnTop(HWND hwnd, bool top) {
     SetWindowPos(hwnd, (top ? HWND_TOPMOST : HWND_NOTOPMOST),
         0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 }
+
+static void PersistUiSettings(HWND hWnd) {
+    auto& cfg = midi::Config::getInstance();
+    if (HWND hTop = GetDlgItem(hWnd, ID_CHK_TOP))
+        cfg.ui.alwaysOnTop = (SendMessage(hTop, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    if (g_player) {
+        cfg.ui.key88 = g_player->eightyEightKeyModeActive;
+        cfg.ui.autoVol = g_player->enable_volume_adjustment.load(std::memory_order_relaxed);
+        cfg.ui.velocity = g_player->enable_velocity_keypress.load(std::memory_order_relaxed);
+        cfg.ui.sustainMode = static_cast<int>(g_player->currentSustainMode);
+    }
+    try {
+        cfg.saveToFile("config.json");
+        std::cout << "[Config] Saved UI_SETTINGS.\n";
+    }
+    catch (const std::exception& ex) {
+        std::cerr << "[Config] Failed to save config: " << ex.what() << "\n";
+    }
+}
+
+static void ApplySavedUiToolbarState(HWND hWnd) {
+    if (!g_player)
+        return;
+    const auto& ui = midi::Config::getInstance().ui;
+    using SM = SustainMode;
+    int sm = ui.sustainMode;
+    if (sm < 0 || sm > 2)
+        sm = 0;
+    // Match VirtualPianoPlayer defaults with config (toggle uses same side effects as clicking)
+    if (ui.key88 != g_player->eightyEightKeyModeActive)
+        g_player->toggle_88_key_mode();
+    if (ui.autoVol != g_player->enable_volume_adjustment.load(std::memory_order_relaxed))
+        g_player->toggle_volume_adjustment();
+    if (ui.velocity != g_player->enable_velocity_keypress.load(std::memory_order_relaxed))
+        g_player->toggle_velocity_keypress();
+    g_player->currentSustainMode = static_cast<SM>(sm);
+    g_toggleStates[ID_BTN_88KEY] = g_player->eightyEightKeyModeActive;
+    g_toggleStates[ID_BTN_VOLADJ] = g_player->enable_volume_adjustment.load(std::memory_order_relaxed);
+    g_toggleStates[ID_BTN_VELOCITY] = g_player->enable_velocity_keypress.load(std::memory_order_relaxed);
+    g_toggleStates[ID_BTN_SUSTAIN] = (g_player->currentSustainMode != SM::IG);
+    for (int btn : { ID_BTN_88KEY, ID_BTN_VOLADJ, ID_BTN_VELOCITY, ID_BTN_SUSTAIN }) {
+        if (HWND hb = GetDlgItem(hWnd, btn))
+            InvalidateRect(hb, nullptr, TRUE);
+    }
+}
 static void UpdateWindowFocusability() {
     if (!g_hMainWnd) return;
     bool shouldBeNoActivate = false;
@@ -1172,12 +1217,11 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
             Layout::LOG_X + Layout::LOG_W - 80, Layout::LOG_Y + 115, 70, 25,
             hWnd, reinterpret_cast<HMENU>(ID_BTN_REFRESH_VCURVE), g_hInst, nullptr);
 
-        // Initialize Toggle States
+        // Initialize Toggle States for owner-draw toolbar + saved UI_SETTINGS
         std::vector<int> toggles = { ID_BTN_88KEY, ID_BTN_VOLADJ, ID_BTN_VELOCITY, ID_BTN_SUSTAIN, ID_BTN_TRANSPOSEOUT, ID_BTN_MIDI2QWERTY };
         for (int t : toggles)
             g_toggleStates[t] = false;
-        if (g_player && g_player->eightyEightKeyModeActive)
-            g_toggleStates[ID_BTN_88KEY] = true;
+        ApplySavedUiToolbarState(hWnd);
 
         // Initial Setup
         ScanMidiFolder();
@@ -1301,14 +1345,8 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
                 HWND hChk = reinterpret_cast<HWND>(lParam);
                 bool top = (SendMessage(hChk, BM_GETCHECK, 0, 0) == BST_CHECKED);
                 SetAlwaysOnTop(hWnd, top);
-                midi::Config::getInstance().ui.alwaysOnTop = top;
-                try {
-                    midi::Config::getInstance().saveToFile("config.json");
-                    std::cout << "[Config] Saved Always on Top state: " << (top ? "ENABLED" : "DISABLED") << "\n";
-                }
-                catch (const std::exception& ex) {
-                    std::cerr << "[Config] Failed to save config: " << ex.what() << "\n";
-                }
+                PersistUiSettings(hWnd);
+                std::cout << "[Config] Always on Top: " << (top ? "ENABLED" : "DISABLED") << "\n";
             }
             break;
 
@@ -1795,6 +1833,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
                     g_player->toggle_out_of_range_transpose();
                     break;
                 }
+                PersistUiSettings(hWnd);
             }
             else if (id == ID_BTN_TRANSPOSE && code == BN_CLICKED) {
                 if (!g_player->midiFileSelected.load(std::memory_order_acquire) &&

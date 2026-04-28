@@ -267,11 +267,23 @@ namespace midi {
     }
 
     void to_json(nlohmann::json& j, const UISettings& ui) {
-        j = nlohmann::json{ {"alwaysOnTop", ui.alwaysOnTop} };
+        j = nlohmann::json{
+            {"alwaysOnTop", ui.alwaysOnTop},
+            {"key88", ui.key88},
+            {"autoVol", ui.autoVol},
+            {"velocity", ui.velocity},
+            {"sustainMode", ui.sustainMode}
+        };
     }
 
     void from_json(const nlohmann::json& j, UISettings& ui) {
-        j.at("alwaysOnTop").get_to(ui.alwaysOnTop);
+        ui.alwaysOnTop = j.value("alwaysOnTop", ui.alwaysOnTop);
+        ui.key88 = j.value("key88", ui.key88);
+        ui.autoVol = j.value("autoVol", ui.autoVol);
+        ui.velocity = j.value("velocity", ui.velocity);
+        ui.sustainMode = j.value("sustainMode", ui.sustainMode);
+        if (ui.sustainMode < 0 || ui.sustainMode > 2)
+            ui.sustainMode = 0;
     }
 
     void to_json(nlohmann::json& j, const HotkeySettings& h) {
@@ -432,7 +444,11 @@ namespace midi {
         midi = { true }; // DETECT_DRUMS
 
         // UI settings
-        ui = { true }; // alwaysOnTop
+        ui.alwaysOnTop = true;
+        ui.key88 = true;
+        ui.autoVol = false;
+        ui.velocity = false;
+        ui.sustainMode = 0;
 
         SEEK_STEP_SECONDS = 10;
 

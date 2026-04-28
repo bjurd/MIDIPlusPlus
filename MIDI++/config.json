@@ -182,7 +182,11 @@
     "SEEK_STEP_SECONDS": 10,
     "STACKED_NOTE_HANDLING_MODE": "LIFO",
     "UI_SETTINGS": {
-        "alwaysOnTop": true
+        "alwaysOnTop": false,
+        "autoVol": false,
+        "key88": true,
+        "sustainMode": 0,
+        "velocity": false
     },
     "VELOCITY_KEYPRESS_MODIFIER": "ALT",
     "VOLUME_SETTINGS": {

@@ -69,6 +69,10 @@ namespace midi {
 
     struct UISettings {
         bool alwaysOnTop = false;
+        bool key88 = true;
+        bool autoVol = false;
+        bool velocity = false;
+        int sustainMode = 0; // 0 = IG, 1 = SPACE_DOWN, 2 = SPACE_UP
     };
 
     struct MIDISettings {
