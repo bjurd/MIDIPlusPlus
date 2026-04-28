@@ -2045,7 +2045,7 @@ int WINAPI wWinMain(
     RegisterClassExW(&wc);
     g_hMainWnd = CreateWindowExW(WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_TOPMOST,
         wc.lpszClassName,
-        L"MIDI++ v1.0.0.00.0.0.000.0.0.",
+        L"MIDI++",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         CW_USEDEFAULT, CW_USEDEFAULT,
         Layout::WIN_W, Layout::WIN_H,

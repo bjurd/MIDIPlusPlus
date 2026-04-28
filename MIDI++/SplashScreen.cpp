@@ -616,7 +616,7 @@ void SplashScreen::DrawTextContent(HDC hdc) {
     HFONT oldFont = (HFONT)SelectObject(hdc, smallFont);
     RECT jokeRect = { 0, m_height / 2, m_width, m_height };
     ::DrawTextW(hdc, jokeText.c_str(), -1, &jokeRect, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
-    std::wstring versionText = L"hello world";
+    std::wstring versionText = L"";
     RECT versionRect = { 0, m_height - 30, m_width, m_height };
     ::DrawTextW(hdc, versionText.c_str(), -1, &versionRect, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 
