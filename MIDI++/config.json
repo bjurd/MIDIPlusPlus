@@ -17,10 +17,9 @@
         "SPEED_DOWN_KEY": "VK_F6",
         "SPEED_UP_KEY": "VK_F5",
         "SUSTAIN_KEY": "VK_SPACE",
-        "VOLUME_DOWN_KEY": "VK_SUBTRACT",
-        "VOLUME_UP_KEY": "VK_ADD"
+        "VOLUME_DOWN_KEY": "VK_LEFT",
+        "VOLUME_UP_KEY": "VK_RIGHT"
     },
-    "SEEK_STEP_SECONDS": 10,
     "KEY_MAPPINGS": {
         "FULL": {
             "A#0": "ctrl+2",
@@ -180,6 +179,7 @@
         "DETECT_DRUMS": true
     },
     "PLAYLIST_FILES": [],
+    "SEEK_STEP_SECONDS": 10,
     "STACKED_NOTE_HANDLING_MODE": "LIFO",
     "UI_SETTINGS": {
         "alwaysOnTop": true
@@ -188,8 +188,8 @@
     "VOLUME_SETTINGS": {
         "ADJUSTMENT_INTERVAL_MS": 50,
         "INITIAL_VOLUME": 100,
-        "MAX_VOLUME": 127,
-        "MIN_VOLUME": 1,
-        "VOLUME_STEP": 9
+        "MAX_VOLUME": 200,
+        "MIN_VOLUME": 10,
+        "VOLUME_STEP": 10
     }
 }
