@@ -1755,7 +1755,11 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
                 g_toggleStates[id] = !g_toggleStates[id];
                 InvalidateRect(GetDlgItem(hWnd, id), nullptr, TRUE);
 
-                const bool toggleNeedsLoadedMidi = id != ID_BTN_88KEY && id != ID_BTN_VOLADJ && id != ID_BTN_VELOCITY;
+                const bool toggleNeedsLoadedMidi = 
+                    id != ID_BTN_88KEY &&
+                    id != ID_BTN_VOLADJ &&
+                    id != ID_BTN_VELOCITY &&
+                    id != ID_BTN_SUSTAIN;
 
                 if (toggleNeedsLoadedMidi &&
                     !g_player->midiFileSelected.load(std::memory_order_acquire) &&
