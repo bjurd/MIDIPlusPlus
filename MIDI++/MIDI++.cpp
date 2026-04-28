@@ -471,6 +471,8 @@ class LogBuf : public std::streambuf {
         timestampCache = buf;
     }
 protected:
+    static constexpr size_t MAX_LOG_BUFFER = 4 * 1024; // 4KB (pulled out of my ass)
+
     std::streamsize xsputn(const char* s, std::streamsize n) override {
         if (n <= 0)
             return 0;
@@ -491,10 +493,22 @@ protected:
         }
         if (start < static_cast<size_t>(n))
             chunk.append(s + start, n - start);
+
         chunk = std::regex_replace(chunk, g_ansiPattern, "");
         {
             std::lock_guard<std::mutex> lk(g_logMutex);
             g_logBuffer += chunk;
+
+            if (g_logBuffer.size() > MAX_LOG_BUFFER)
+            {
+                size_t trim = g_logBuffer.size() - MAX_LOG_BUFFER;
+
+                size_t newline = g_logBuffer.find('\n', trim);
+                if (newline != std::string::npos)
+                    trim = newline + 1;
+
+                g_logBuffer.erase(0, trim);
+            }
         }
         if (g_guiReady.load(std::memory_order_acquire))
             PostMessage(g_hMainWnd, WM_UPDATE_LOG, 0, 0);
