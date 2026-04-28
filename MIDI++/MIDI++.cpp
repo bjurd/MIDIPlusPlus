@@ -1754,7 +1754,11 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
             if (IsToggleButtonID(id) && code == BN_CLICKED && id != ID_BTN_MIDI2QWERTY) {
                 g_toggleStates[id] = !g_toggleStates[id];
                 InvalidateRect(GetDlgItem(hWnd, id), nullptr, TRUE);
-                if (!g_player->midiFileSelected.load(std::memory_order_acquire) &&
+
+                const bool toggleNeedsLoadedMidi = id != ID_BTN_88KEY && id != ID_BTN_VOLADJ && id != ID_BTN_VELOCITY;
+
+                if (toggleNeedsLoadedMidi &&
+                    !g_player->midiFileSelected.load(std::memory_order_acquire) &&
                     !(g_midi2key && g_midi2key->IsActive()) &&
                     !(g_midiConnect && g_midiConnect->IsActive())) {
                     MessageBoxA(hWnd, "Load a MIDI file first or enable MIDI->QWERTY to use advanced features.",
