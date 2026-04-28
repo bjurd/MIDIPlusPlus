@@ -29,6 +29,7 @@
 #include <iomanip>
 #include <cwchar>
 #include <windowsx.h>
+#include <shellapi.h>
 
 #pragma comment(lib, "Comctl32.lib")
 #pragma comment(lib, "Gdiplus.lib")
@@ -253,14 +254,14 @@ static bool IsToggleButtonID(int id) {
 struct MidiItem {
     std::wstring name;
     std::wstring fullPath;
-    bool isFolder;
-    std::time_t lastWrite; 
+    bool isFolder{};
+    std::time_t lastWrite{};
 };
 
 static std::vector<MidiItem> g_midiItems;
 static std::filesystem::path g_currentMidiDir = L"midi";
 // bunch of kids
-std::string getReadableKey(const std::string& key) {
+static std::string getReadableKey(const std::string& key) {
     const std::string prefix = "VK_";
     if (key.compare(0, prefix.size(), prefix) == 0) {
         return key.substr(prefix.size());
@@ -387,7 +388,10 @@ static void RefreshVelocityCurveCombo(HWND hWnd) {
 
     const auto& customCurves = midi::Config::getInstance().playback.customVelocityCurves;
     for (const auto& curve : customCurves) {
-        std::wstring wCurveName(curve.name.begin(), curve.name.end());
+        std::wstring wCurveName;
+        wCurveName.reserve(curve.name.size());
+        for (unsigned char ch : curve.name)
+            wCurveName.push_back(static_cast<wchar_t>(ch));
         SendMessageW(cbVelocity, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(wCurveName.c_str()));
     }
 
@@ -460,7 +464,7 @@ static std::string GetTimeStamp() {
 
 class LogBuf : public std::streambuf {
     static constexpr size_t BUFFER_SIZE = 8192;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE]{};
     bool startOfLine = true;
     std::string timestampCache;
     void updateTimestampCache() {
@@ -517,7 +521,7 @@ protected:
     int overflow(int c = EOF) override {
         if (c == EOF) return c;
         char ch = static_cast<char>(c);
-        return xsputn(&ch, 1);
+        return static_cast<int>(xsputn(&ch, 1));
     }
 };
 
@@ -882,7 +886,7 @@ static LRESULT CALLBACK MidiListSubclassProc(HWND hwnd, UINT msg, WPARAM wParam,
     {
     case WM_RBUTTONDOWN:
     {
-        POINT pt;
+        POINT pt{};
         pt.x = GET_X_LPARAM(lParam);
         pt.y = GET_Y_LPARAM(lParam);
         int index = static_cast<int>(SendMessage(hwnd, LB_ITEMFROMPOINT, 0, MAKELPARAM(pt.x, pt.y)));
@@ -1982,7 +1986,11 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
 // -----------------------------------------------------------------------------
 // Main Entry Point
 // -----------------------------------------------------------------------------
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int) {
+int WINAPI wWinMain(
+    _In_ HINSTANCE hInstance,
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPWSTR lpCmdLine,
+    _In_ int nCmdShow) {
     srand(static_cast<unsigned int>(time(NULL)));
     UniqueHandle singleInstanceMutex(CreateMutexW(nullptr, TRUE, L"Global\\MIDI++_On_Top"));
     g_hSingleInstanceMutex = singleInstanceMutex;

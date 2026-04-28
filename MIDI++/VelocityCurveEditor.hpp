@@ -16,7 +16,7 @@ public:
 private:
     // Window and control creation
     void CreateControls();
-    void CreateButton(const wchar_t* text, int x, int y, int width, int id);
+    void CreateButton(const wchar_t* text, int x, int y, int width, int id) const;
 
     // Event handlers
     static LRESULT CALLBACK EditorWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -41,13 +41,13 @@ private:
     void SmoothCurve();
     void LoadPreset(const std::string& preset);
     void SaveCurve();
-    void InvalidateCurveArea();
+    void InvalidateCurveArea() const;
     RECT GetClientRect() const;
 
     // Info display helper functions
-    const wchar_t* GetDynamicText(int velocity);
-    const wchar_t* GetPlayingFeelText(float ratio);
-    char GetKeyForPoint(int point);
+    const wchar_t* GetDynamicText(int velocity) const;
+    const wchar_t* GetPlayingFeelText(float ratio) const;
+    char GetKeyForPoint(int point) const;
 
 private:
     // Window handles

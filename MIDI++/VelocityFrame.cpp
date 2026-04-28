@@ -242,7 +242,7 @@ void VelocityCurveEditor::DrawCurve(Gdiplus::Graphics& graphics, const RECT& rec
     }
 }
 
-const wchar_t* VelocityCurveEditor::GetDynamicText(int velocity) {
+const wchar_t* VelocityCurveEditor::GetDynamicText(int velocity) const {
     if (velocity < 16) return L"ppp";
     if (velocity < 32) return L"pp";
     if (velocity < 48) return L"p";
@@ -253,7 +253,7 @@ const wchar_t* VelocityCurveEditor::GetDynamicText(int velocity) {
     return L"fff";
 }
 
-const wchar_t* VelocityCurveEditor::GetPlayingFeelText(float ratio) {
+const wchar_t* VelocityCurveEditor::GetPlayingFeelText(float ratio) const {
     if (ratio < 0.5f) return L"Very Soft Touch";
     if (ratio < 0.8f) return L"Light Touch";
     if (ratio < 1.2f) return L"Natural";
@@ -261,7 +261,7 @@ const wchar_t* VelocityCurveEditor::GetPlayingFeelText(float ratio) {
     return L"Very Heavy Touch";
 }
 
-char VelocityCurveEditor::GetKeyForPoint(int point) {
+char VelocityCurveEditor::GetKeyForPoint(int point) const {
     static const char keys[] = "1234567890QWERTYUIOPASDFGHJKLZXCV";
     return keys[point % (int)strlen(keys)];
 }
@@ -427,7 +427,11 @@ void VelocityCurveEditor::SmoothNearbyPoints(int center) {
 void VelocityCurveEditor::SmoothCurve() {
     std::vector<int> smoothed = points;
     for (int i = 1; i < POINT_COUNT - 1; i++) {
-        smoothed[i] = (points[i - 1] + 2 * points[i] + points[i + 1]) / 4;
+        const long long sum =
+            static_cast<long long>(points[i - 1])
+            + 2LL * static_cast<long long>(points[i])
+            + static_cast<long long>(points[i + 1]);
+        smoothed[i] = static_cast<int>(sum / 4LL);
     }
     points = smoothed;
 }
@@ -461,8 +465,14 @@ void VelocityCurveEditor::LoadPreset(const std::string& preset) {
 void VelocityCurveEditor::SaveCurve() {
     wchar_t curveNameW[256];
     GetWindowTextW(hwndCurveName, curveNameW, _countof(curveNameW));
-    std::wstring wstr(curveNameW);
-    std::string name(wstr.begin(), wstr.end());
+    const int nbytes = WideCharToMultiByte(
+        CP_UTF8, 0, curveNameW, -1, nullptr, 0, nullptr, nullptr);
+    std::string name;
+    if (nbytes > 1) {
+        name.resize(static_cast<size_t>(nbytes - 1));
+        WideCharToMultiByte(CP_UTF8, 0, curveNameW, -1, name.data(),
+                            nbytes, nullptr, nullptr);
+    }
 
     if (name.empty()) {
         MessageBoxW(hwndEditor, L"Please enter a name for the curve.", L"Error", MB_OK | MB_ICONWARNING);
@@ -498,7 +508,7 @@ void VelocityCurveEditor::SaveCurve() {
     }
 }
 
-void VelocityCurveEditor::InvalidateCurveArea() {
+void VelocityCurveEditor::InvalidateCurveArea() const {
     RECT rect;
     ::GetClientRect(hwndEditor, &rect);
     RECT curveRect = { 0, GRID_TOP, rect.right, GRID_BOTTOM };
@@ -615,7 +625,7 @@ void VelocityCurveEditor::CreateControls() {
     CreateButton(L"Smooth", buttonStartX + 6 * (BUTTON_WIDTH + BUTTON_GAP), buttonY, BUTTON_WIDTH, ID_VCURVE_SMOOTH);
 }
 
-void VelocityCurveEditor::CreateButton(const wchar_t* text, int x, int y, int width, int id) {
+void VelocityCurveEditor::CreateButton(const wchar_t* text, int x, int y, int width, int id) const {
     HWND btn = CreateWindowExW(
         0,
         L"BUTTON",
@@ -623,7 +633,7 @@ void VelocityCurveEditor::CreateButton(const wchar_t* text, int x, int y, int wi
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_NOTIFY,
         x, y, width, BUTTON_HEIGHT,
         hwndEditor,
-        reinterpret_cast<HMENU>(id),
+        reinterpret_cast<HMENU>(static_cast<uintptr_t>(static_cast<UINT_PTR>(id))),
         GetModuleHandle(nullptr),
         nullptr
     );

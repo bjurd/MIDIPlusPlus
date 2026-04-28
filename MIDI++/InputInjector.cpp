@@ -11,6 +11,10 @@ static UINT __fastcall gay(ULONG cInputs, LPINPUT pInputs, int cbSize)
 
 extern "C" UINT(__fastcall* NtUserSendInputCall)(ULONG cInputs, LPINPUT pInputs, int cbSize) = gay;
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4297) // syscall garbage
+#endif
 extern "C" unsigned long __cdecl GetNtUserSendInputSyscallNumber(void)
 {
     // Encoded strings:
@@ -57,6 +61,9 @@ extern "C" unsigned long __cdecl GetNtUserSendInputSyscallNumber(void)
     DWORD number = *reinterpret_cast<DWORD*>(pBytes + 4);
     return number;
 }
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 // because why read from memory and do syscall when you can just do syscall lol, god forgive me for what im doing
 extern "C" void InitializeNtUserSendInputCall(void)

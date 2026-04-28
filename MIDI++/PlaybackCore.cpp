@@ -364,9 +364,10 @@ PlaybackControl::State PlaybackControl::processCommand(const State& current_stat
         return current_state;
 
     State new_state = current_state;
+    const double scaledSecs =
+        static_cast<double>(command_amount.count()) * speed;
     auto scaled = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::duration<double>(command_amount.count() * speed)
-    );
+        std::chrono::duration<double>(scaledSecs));
 
     switch (pending_command) {
     case Command::SKIP:
@@ -390,7 +391,7 @@ PlaybackControl::State PlaybackControl::processCommand(const State& current_stat
 
 //----------------------------------------------------------------
 // IsWin7OrWin8_Real: Check if OS is exactly Windows 7 or 8.
-bool IsWin7OrWin8_Real() {
+static bool IsWin7OrWin8_Real() {
     HMODULE hNtdll = GetModuleHandleA("ntdll.dll");
     if (!hNtdll)
         return false;
@@ -447,7 +448,7 @@ VirtualPianoPlayer::VirtualPianoPlayer() noexcept(false)
     auto mappings = define_key_mappings();
     limited_key_mappings = std::move(mappings.first);
     full_key_mappings = std::move(mappings.second);
-    note_buffer.reserve(1 << 20);
+    note_buffer.reserve(std::size_t{1} << 20u);
     waitable_timer = CreateWaitableTimerEx(
         nullptr,
         nullptr,
@@ -542,7 +543,7 @@ VirtualPianoPlayer::~VirtualPianoPlayer() {
     }
 }
 
-std::chrono::nanoseconds VirtualPianoPlayer::get_adjusted_time() noexcept {
+std::chrono::nanoseconds VirtualPianoPlayer::get_adjusted_time() const noexcept {
     // If paused, just return the last total time
     if (paused.load(std::memory_order_relaxed))
         return total_adjusted_time;
@@ -610,33 +611,29 @@ void VirtualPianoPlayer::play_notes() {
     size_t current_index = buffer_index.load(std::memory_order_acquire);
 
     // Auto-transpose logic if enabled
-    if (midi::Config::getInstance().auto_transpose.ENABLED &&
+    if (midi::Config::getInstance().auto_transpose.ENABLED) {
         [this]() {
-            int suggestedTransposition = toggle_transpose_adjustment();
-            int diff = suggestedTransposition - currentTransposition;
-            if (diff) {
-                std::cout << "Suggested Transposition: " << suggestedTransposition
-                          << "\n[Transpose] Adjusting by " << diff << " steps.\n";
-                [&]() -> bool {
-                    auto& cfg = midi::Config::getInstance().auto_transpose;
-                    WORD scanCode = MapVirtualKey(
-                        stringToVK(diff > 0 ? cfg.TRANSPOSE_UP_KEY
-                                            : cfg.TRANSPOSE_DOWN_KEY),
-                        MAPVK_VK_TO_VSC
-                    );
-                    int steps = std::abs(diff);
-                    // sleep before arrowsend to fix off-by-1 error
-                    for (int i = 0; i < steps; ++i) {
-                        Sleep(50);
-                        arrowsend(scanCode, true);
-                    }
-                    currentTransposition = suggestedTransposition;
-                    return true;
-                }();
-                return true;
-            }
-            return false;
-        }());
+            const int suggestedTransposition = toggle_transpose_adjustment();
+            const int diff = suggestedTransposition - currentTransposition;
+            if (!diff)
+                return;
+            std::cout << "Suggested Transposition: " << suggestedTransposition
+                      << "\n[Transpose] Adjusting by " << diff << " steps.\n";
+            const auto transposeOnce = [&](int steps, WORD scanCode) {
+                for (int i = 0; i < steps; ++i) {
+                    Sleep(50);
+                    arrowsend(scanCode, true);
+                }
+            };
+            auto& cfg = midi::Config::getInstance().auto_transpose;
+            WORD scanCode = MapVirtualKey(
+                stringToVK(diff > 0 ? cfg.TRANSPOSE_UP_KEY : cfg.TRANSPOSE_DOWN_KEY),
+                MAPVK_VK_TO_VSC
+            );
+            transposeOnce(std::abs(diff), scanCode);
+            currentTransposition = suggestedTransposition;
+        }();
+    }
 
     while (!should_stop.load(std::memory_order_acquire)) {
         auto current_time = get_adjusted_time();
@@ -1162,9 +1159,11 @@ void VirtualPianoPlayer::calibrate_volume() {
         for (volatile int j = 0; j < 8000; ++j) {} // small busy loop
     }
     double cf = (vc.INITIAL_VOLUME > 150) ? 1.1 : 1.0;
-    int steps = static_cast<int>(
-                    std::ceil(((vc.INITIAL_VOLUME - vc.MIN_VOLUME) /
-                                vc.VOLUME_STEP) * cf));
+    const double stepCount =
+        (static_cast<double>(vc.INITIAL_VOLUME - vc.MIN_VOLUME)
+         / static_cast<double>(vc.VOLUME_STEP))
+        * cf;
+    const int steps = static_cast<int>(std::ceil(stepCount));
 
     for (int i = 0; i < steps; ++i) {
         tapVirtualKey(volume_up_key_code);
@@ -1214,7 +1213,7 @@ int VirtualPianoPlayer::toggle_transpose_adjustment() {
 }
 
 // Helpers for detect drums
-std::string getTrackName(const MidiTrack& track) {
+static std::string getTrackName(const MidiTrack& track) {
     if (!track.name.empty())
         return track.name;
     for (const auto& evt : track.events) {
@@ -1224,7 +1223,7 @@ std::string getTrackName(const MidiTrack& track) {
     return "(no name)";
 }
 
-double computeDrumConfidence(const MidiTrack& track) {
+static double computeDrumConfidence(const MidiTrack& track) {
     double confidence = 0.0;
     std::string trackName = track.name;
     if (trackName.empty()) {
@@ -1394,11 +1393,20 @@ void VirtualPianoPlayer::process_tracks(const MidiFile& mid) {
 
     auto tick2ns = [&](uint64_t st, uint64_t en) -> std::chrono::nanoseconds {
         if (smpte) {
-            int8_t fps_val = static_cast<int8_t>(mid.division >> 8);
-            int fps        = -fps_val;
-            uint8_t tpf    = static_cast<uint8_t>(mid.division & 0xFF);
-            uint64_t nspt  = 1000000000ULL / (fps * tpf);
-            return std::chrono::nanoseconds((en - st) * nspt);
+            const int8_t fps_val = static_cast<int8_t>(mid.division >> 8);
+            const int fps        = -static_cast<int>(fps_val);
+            const uint8_t tpf    = static_cast<uint8_t>(mid.division & 0xFF);
+            const uint64_t fpsU =
+                static_cast<uint64_t>(fps < 0 ? -fps : fps);
+            const uint64_t denom =
+                fpsU * static_cast<uint64_t>(tpf);
+            if (denom == 0)
+                return std::chrono::nanoseconds::zero();
+            const uint64_t nspt = 1000000000ULL / denom;
+            const uint64_t delta = en - st;
+            using rep          = std::chrono::nanoseconds::rep;
+            const auto nano = static_cast<long double>(delta) * static_cast<long double>(nspt);
+            return std::chrono::nanoseconds(static_cast<rep>(nano));
         }
         else {
             std::chrono::nanoseconds total_ns(0);
@@ -1417,7 +1425,11 @@ void VirtualPianoPlayer::process_tracks(const MidiFile& mid) {
                 // tempo in microseconds per quarter note
                 uint64_t nspt = (tempo_points[tempo_idx].tempo * 1000ULL) /
                                  mid.division;
-                total_ns += std::chrono::nanoseconds(seg * nspt);
+                using rep = std::chrono::nanoseconds::rep;
+                const auto prod =
+                    static_cast<long double>(seg) * static_cast<long double>(nspt);
+                total_ns +=
+                    std::chrono::nanoseconds(static_cast<rep>(prod));
                 current_tick += seg;
                 if (current_tick >= nxt && tempo_idx < tempo_points.size() - 1) {
                     ++tempo_idx;
@@ -1469,8 +1481,8 @@ void VirtualPianoPlayer::process_tracks(const MidiFile& mid) {
                                       static_cast<double>(tempo_val) });
         }
         else if (evt.status == 0xFF && evt.data1 == 0x58 && evt.metaData.size() == 4) {
-            TimeSignature ts;
-            ts.tick                     = tick;
+            TimeSignature ts{};
+            ts.tick                     = static_cast<uint32_t>(tick);
             ts.numerator                = evt.metaData[0];
             ts.denominator              = static_cast<uint8_t>(1 << evt.metaData[1]);
             ts.clocksPerClick           = evt.metaData[2];

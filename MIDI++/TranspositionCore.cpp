@@ -44,10 +44,14 @@ static std::vector<double> gaussianSmooth(const std::vector<double>& data, doubl
     }
     for (double& w : kernel)
         w /= sumWeights;
+    const int isize = static_cast<int>(data.size());
     for (size_t i = 0; i < data.size(); ++i) {
         double accum = 0.0;
         for (int j = -radius; j <= radius; ++j) {
-            int idx = (i + j + data.size()) % data.size();
+            int idx = static_cast<int>(i) + j;
+            idx %= isize;
+            if (idx < 0)
+                idx += isize;
             accum += data[idx] * kernel[j + radius];
         }
         smoothed[i] = accum;
@@ -595,7 +599,8 @@ double TransposeEngine::calculateHarmonicSmoothness(const std::vector<int>& note
     double total = static_cast<double>(transposedNotes.size());
     for (double& c : counts)
         c /= total;
-    int newKey = std::distance(counts.begin(), std::max_element(counts.begin(), counts.end()));
+    int newKey = static_cast<int>(
+        std::distance(counts.begin(), std::max_element(counts.begin(), counts.end())));
     std::set<int> chordTones = { newKey, (newKey + 4) % 12, (newKey + 7) % 12 };
     double chordSum = 0.0;
     for (int tone : chordTones)

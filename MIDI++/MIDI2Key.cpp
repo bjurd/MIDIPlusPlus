@@ -334,7 +334,6 @@ void __stdcall MIDI2Key::RtMidiCallback(double, std::vector<unsigned char>* mess
     constexpr int SUSTAIN_CUTOFF = 64;
 
     int midi_n;
-    MIDITables::NoteData* noteData;
 
     switch (cmd) {
     case MIDI_NOTE_ON:
@@ -432,6 +431,7 @@ void __stdcall MIDI2Key::RtMidiCallback(double, std::vector<unsigned char>* mess
         break;
     }
 
-    if (inputCount) NtUserSendInputCall(inputCount, batched, sizeof(INPUT));
+    if (inputCount)
+        NtUserSendInputCall(static_cast<ULONG>(inputCount), batched, sizeof(INPUT));
     self->m_inCallback = false;
 }

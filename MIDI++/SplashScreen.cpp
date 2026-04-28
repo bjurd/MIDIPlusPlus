@@ -79,7 +79,7 @@ private:
     HBITMAP m_hNoteBitmap;
     HBITMAP m_hSharpBitmap;
     HFONT m_hFont;
-    UINT m_timerID;
+    UINT_PTR m_timerID;
     float m_deltaTime;
     std::chrono::high_resolution_clock::time_point m_lastFrameTime;
     std::vector<MusicalNote> m_notes;

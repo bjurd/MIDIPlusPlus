@@ -5,7 +5,19 @@
 #include <stdexcept>
 #include <filesystem>
 #include <optional>
+
+// json is a bitch
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 26495)
+#pragma warning(disable : 26819)
+#endif
+
 #include "json.hpp"
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 namespace midi {
 
@@ -79,8 +91,8 @@ namespace midi {
     };
 
     struct CustomVelocityCurve {
-        std::string name;
-        std::array<int, 32> velocityValues;
+        std::string name{};
+        std::array<int, 32> velocityValues{};
     };
 
     // Modify PlaybackSettings

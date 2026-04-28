@@ -40,7 +40,6 @@
 #include "resource.h"
 #include "config.hpp"      // Contains midi::Config and configuration definitions
 #include "Transpose.h"
-#include "json.hpp"
 #include "midi_parser.h"
 #include "InputHeader.h"   // For NtUserSendInputCall and GetNtUserSendInputSyscallNumber
 #include "thread_pool.h"   // dp::thread_pool
@@ -212,7 +211,7 @@ public:
     std::chrono::nanoseconds total_adjusted_time{ 0 };
 
     // Returns current adjusted playback time.
-    std::chrono::nanoseconds get_adjusted_time() noexcept;
+    std::chrono::nanoseconds get_adjusted_time() const noexcept;
 
     // Precomputed scan table for key mapping.
     static const std::array<WORD, 256> SCAN_TABLE_AUTO;
