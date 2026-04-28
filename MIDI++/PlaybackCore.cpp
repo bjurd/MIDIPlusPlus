@@ -609,6 +609,8 @@ void VirtualPianoPlayer::prepare_event_queue() {
 
 void VirtualPianoPlayer::play_notes() {
     prepare_event_queue();
+    
+    buffer_index.store(find_next_event_index(total_adjusted_time), std::memory_order_release);
 
     // Enable MMCSS for low-latency pro audio.
     DWORD taskIndex = 0;
@@ -1896,7 +1898,6 @@ void VirtualPianoPlayer::skip(std::chrono::seconds duration) {
         s += skip_ns;
 
         total_adjusted_time = song_pos_to_timeline(s);
-        buffer_index.store(find_next_event_index(total_adjusted_time), std::memory_order_release);
 
         return;
     }
@@ -1932,7 +1933,6 @@ void VirtualPianoPlayer::rewind(std::chrono::seconds duration) {
         }
 
         total_adjusted_time = song_pos_to_timeline(s);
-        buffer_index.store(find_next_event_index(total_adjusted_time), std::memory_order_release);
 
         return;
     }
