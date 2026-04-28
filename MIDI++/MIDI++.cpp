@@ -2011,7 +2011,7 @@ int WINAPI wWinMain(
     g_player = &player;
     RedirectCout();
     auto& cfg = midi::Config::getInstance();
-    std::cout << " ===== MIDI++ v1.0.4.R5 | Developed by Zeph, Tested by Gene =====\n";
+    std::cout << " ===== MIDI++ | Developed by Zeph, Tested by Gene, Fixed by bjurd =====\n";
     std::cout << "Hotkeys:\n";
     std::cout << "  Play/Pause:     " << getReadableKey(cfg.hotkeys.PLAY_PAUSE_KEY) << "\n";
     std::cout << "  Rewind:         " << getReadableKey(cfg.hotkeys.REWIND_KEY) << "\n";
@@ -2040,7 +2040,7 @@ int WINAPI wWinMain(
     RegisterClassExW(&wc);
     g_hMainWnd = CreateWindowExW(WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_TOPMOST,
         wc.lpszClassName,
-        L"MIDI++ v1.0.4.R5",
+        L"MIDI++ v1.0.0.00.0.0.000.0.0.",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         CW_USEDEFAULT, CW_USEDEFAULT,
         Layout::WIN_W, Layout::WIN_H,
