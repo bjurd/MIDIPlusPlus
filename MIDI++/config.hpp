@@ -73,6 +73,8 @@ namespace midi {
         std::string REWIND_KEY = "VK_F2";          // Added default for rewind
         std::string SKIP_KEY = "VK_F3";            // Added default for skip
         std::string EMERGENCY_EXIT_KEY = "VK_F4"; // Added default for emergency exit
+        std::string SPEED_UP_KEY = "VK_F5";       // Same action as UI Speed++
+        std::string SPEED_DOWN_KEY = "VK_F6";     // Same action as UI Speed--
         void validate() const;
     };
 

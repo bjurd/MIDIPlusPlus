@@ -50,6 +50,8 @@ namespace midi {
         validateKey(REWIND_KEY);
         validateKey(SKIP_KEY);
         validateKey(EMERGENCY_EXIT_KEY);
+        validateKey(SPEED_UP_KEY);
+        validateKey(SPEED_DOWN_KEY);
     }
 
     void PlaybackSettings::validate() const {
@@ -241,7 +243,9 @@ namespace midi {
             {"PLAY_PAUSE_KEY", h.PLAY_PAUSE_KEY},
             {"REWIND_KEY", h.REWIND_KEY},
             {"SKIP_KEY", h.SKIP_KEY},
-            {"EMERGENCY_EXIT_KEY", h.EMERGENCY_EXIT_KEY}
+            {"EMERGENCY_EXIT_KEY", h.EMERGENCY_EXIT_KEY},
+            {"SPEED_UP_KEY", h.SPEED_UP_KEY},
+            {"SPEED_DOWN_KEY", h.SPEED_DOWN_KEY}
         };
     }
 
@@ -253,6 +257,8 @@ namespace midi {
         j.at("REWIND_KEY").get_to(h.REWIND_KEY);
         j.at("SKIP_KEY").get_to(h.SKIP_KEY);
         j.at("EMERGENCY_EXIT_KEY").get_to(h.EMERGENCY_EXIT_KEY);
+        h.SPEED_UP_KEY   = j.value("SPEED_UP_KEY", std::string("VK_F5"));
+        h.SPEED_DOWN_KEY = j.value("SPEED_DOWN_KEY", std::string("VK_F6"));
         h.validate();
     }
     void to_json(json& j, const PlaybackSettings& p) {
@@ -388,7 +394,9 @@ namespace midi {
             "VK_F1",        // PLAY_PAUSE_KEY
             "VK_F2",        // REWIND_KEY
             "VK_F3",        // SKIP_KEY
-            "VK_F4"    // EMERGENCY_EXIT_KEY
+            "VK_F4",        // EMERGENCY_EXIT_KEY
+            "VK_F5",        // SPEED_UP_KEY
+            "VK_F6"         // SPEED_DOWN_KEY
         };
 
         // Setup default LIMITED key mappings

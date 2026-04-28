@@ -1678,17 +1678,23 @@ void VirtualPianoPlayer::hotkey_listener() {
     int rewindVK        = stringToVK(midi::Config::getInstance().hotkeys.REWIND_KEY);
     int skipVK          = stringToVK(midi::Config::getInstance().hotkeys.SKIP_KEY);
     int emergencyExitVK = stringToVK(midi::Config::getInstance().hotkeys.EMERGENCY_EXIT_KEY);
+    int speedUpVK       = stringToVK(midi::Config::getInstance().hotkeys.SPEED_UP_KEY);
+    int speedDownVK     = stringToVK(midi::Config::getInstance().hotkeys.SPEED_DOWN_KEY);
 
     bool wasPlayPause   = false;
     bool wasRewind      = false;
     bool wasSkip        = false;
     bool wasEmergency   = false;
+    bool wasSpeedUp     = false;
+    bool wasSpeedDown   = false;
 
     while (!hotkey_stop.load(std::memory_order_acquire)) {
         bool playPauseDown  = (GetAsyncKeyState(playPauseVK) & 0x8000) != 0;
         bool rewindDown     = (GetAsyncKeyState(rewindVK) & 0x8000) != 0;
         bool skipDown       = (GetAsyncKeyState(skipVK) & 0x8000) != 0;
         bool emergencyDown  = (GetAsyncKeyState(emergencyExitVK) & 0x8000) != 0;
+        bool speedUpDown    = (GetAsyncKeyState(speedUpVK) & 0x8000) != 0;
+        bool speedDownDown  = (GetAsyncKeyState(speedDownVK) & 0x8000) != 0;
 
         if (playPauseDown && !wasPlayPause) {
             // std::cout << "[DEBUG] F1 pressed (PLAY/PAUSE)\n";
@@ -1706,11 +1712,21 @@ void VirtualPianoPlayer::hotkey_listener() {
             // std::cout << "[DEBUG] F4 pressed (EMERGENCY EXIT)\n";
             emergency_exit();
         }
+        if (speedUpDown && !wasSpeedUp &&
+            midiFileSelected.load(std::memory_order_acquire)) {
+            speed_up();
+        }
+        if (speedDownDown && !wasSpeedDown &&
+            midiFileSelected.load(std::memory_order_acquire)) {
+            slow_down();
+        }
 
         wasPlayPause = playPauseDown;
         wasRewind    = rewindDown;
         wasSkip      = skipDown;
         wasEmergency = emergencyDown;
+        wasSpeedUp   = speedUpDown;
+        wasSpeedDown = speedDownDown;
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }

@@ -2010,6 +2010,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int) {
     std::cout << "  Play/Pause:     " << getReadableKey(cfg.hotkeys.PLAY_PAUSE_KEY) << "\n";
     std::cout << "  Rewind:         " << getReadableKey(cfg.hotkeys.REWIND_KEY) << "\n";
     std::cout << "  Skip:           " << getReadableKey(cfg.hotkeys.SKIP_KEY) << "\n";
+    std::cout << "  Speed up:       " << getReadableKey(cfg.hotkeys.SPEED_UP_KEY) << "\n";
+    std::cout << "  Speed down:     " << getReadableKey(cfg.hotkeys.SPEED_DOWN_KEY) << "\n";
     std::cout << "  Play Stop:      " << getReadableKey(cfg.hotkeys.EMERGENCY_EXIT_KEY) << "\n";
     g_hInst = hInstance;
     HICON hIcon = LoadIconW(hInstance, MAKEINTRESOURCEW(IDI_APP_ICON));
