@@ -8,6 +8,7 @@
 #include <thread>
 #include <condition_variable>
 #include <iostream>
+#include <string>
 #include "SplashScreen.h"
 
 #pragma comment(lib, "avrt.lib")
@@ -432,20 +433,7 @@ VirtualPianoPlayer::VirtualPianoPlayer() noexcept(false)
 {
     ShowSplashScreen((HINSTANCE)GetModuleHandle(nullptr));
 
-    try {
-        midi::Config::getInstance().loadFromFile("config.json");
-    }
-    catch (const midi::ConfigException& e) {
-        std::cerr << "Configuration error: " << e.what()
-            << "\nLoading default settings...\n";
-        midi::Config::getInstance().setDefaults();
-        try {
-            midi::Config::getInstance().saveToFile("config.json");
-        }
-        catch (const midi::ConfigException& e2) {
-            std::cerr << "Failed to save default config: " << e2.what() << "\n";
-        }
-    }
+    midi::Config::getInstance().loadOrCreateConfigFile("config.json");
 
     if (IsWin7OrWin8_Real()) {
         CloseSplashScreen();

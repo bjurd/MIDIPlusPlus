@@ -2007,8 +2007,13 @@ int WINAPI wWinMain(
         MessageBoxA(nullptr, "Failed to initialize GDI+.", "Error", MB_ICONERROR);
         return -1;
     }
-    static VirtualPianoPlayer player;
-    g_player = &player;
+    try {
+        static VirtualPianoPlayer player;
+        g_player = &player;
+    }
+    catch (const std::exception&) {
+        return 1;
+    }
     RedirectCout();
     auto& cfg = midi::Config::getInstance();
     std::cout << " ===== MIDI++ | Developed by Zeph, Tested by Gene, Fixed by bjurd =====\n";

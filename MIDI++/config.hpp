@@ -122,6 +122,7 @@ namespace midi {
 
         void loadFromFile(const std::filesystem::path& path);
         void saveToFile(const std::filesystem::path& path) const;
+        void loadOrCreateConfigFile(const std::filesystem::path& path);
         void validate() const;
         void setDefaults();
 

@@ -1,8 +1,10 @@
 #include "config.hpp"
+#include "SplashScreen.h"
 #include <cctype>
 #include <fstream>
 #include <iostream>
 #include <algorithm>
+#include <string>
 
 namespace midi {
 
@@ -116,6 +118,40 @@ namespace midi {
         }
         catch (const std::exception& e) {
             throw ConfigException("Failed to save config: " + std::string(e.what()));
+        }
+    }
+
+    void Config::loadOrCreateConfigFile(const std::filesystem::path& path) {
+        if (!std::filesystem::exists(path)) {
+            setDefaults();
+            try {
+                saveToFile(path);
+            }
+            catch (const ConfigException& e) {
+                CloseSplashScreen();
+                std::cerr << "Configuration error: " << e.what() << "\n";
+                MessageBoxA(nullptr, e.what(), "Configuration Error", MB_ICONERROR | MB_OK);
+                throw std::runtime_error("Failed to create default configuration");
+            }
+            return;
+        }
+
+        try {
+            loadFromFile(path);
+        }
+        catch (const ConfigException& e) {
+            CloseSplashScreen();
+            std::cerr << "Configuration error: " << e.what() << "\n";
+            const std::string pathStr = path.string();
+            std::string msg = pathStr +
+                " exists but could not be loaded.\n"
+                "Your file was not modified.\n\n";
+            msg += e.what();
+            msg += "\n\nFix the error in " + pathStr +
+                ", or delete/rename the file to generate a new default configuration "
+                "on next launch.";
+            MessageBoxA(nullptr, msg.c_str(), "Configuration Error", MB_ICONERROR | MB_OK);
+            throw std::runtime_error("Configuration load failed");
         }
     }
 
