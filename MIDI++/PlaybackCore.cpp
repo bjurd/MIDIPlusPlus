@@ -1136,17 +1136,21 @@ void VirtualPianoPlayer::toggle_velocity_keypress() {
 
 void VirtualPianoPlayer::precompute_volume_adjustments() {
     int currMaxVol = max_volume.load(std::memory_order_relaxed);
+    const auto& volCfg = midi::Config::getInstance().volume;
+    const int step     = volCfg.VOLUME_STEP;
     for (int v = 0; v < 128; ++v) {
         double ratio = static_cast<double>(v) / 127.0;
-        int tv       = static_cast<int>(ratio * currMaxVol);
-        int mn       = std::min(midi::Config::getInstance().volume.MIN_VOLUME,
-                                currMaxVol);
-        int mx       = std::max(midi::Config::getInstance().volume.MIN_VOLUME,
-                                currMaxVol);
+        int tv = static_cast<int>(ratio * currMaxVol);
+        int mn = std::min(volCfg.MIN_VOLUME, currMaxVol);
+        int mx = std::max(volCfg.MIN_VOLUME, currMaxVol);
         tv = std::clamp(tv, mn, mx);
-        // Round to nearest 10
-        tv = ((tv + 5) / 10) * 10;
-        volume_lookup[v] = tv;
+        if (step > 0) {
+            const int i = static_cast<int>(
+                std::lround(static_cast<double>(tv - mn) /
+                            static_cast<double>(step)));
+            tv = mn + i * step;
+        }
+        volume_lookup[v] = std::clamp(tv, mn, mx);
     }
 }
 
