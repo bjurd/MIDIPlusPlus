@@ -111,6 +111,7 @@ namespace midi {
         VolumeSettings volume;
         AutoTranspose auto_transpose;
         HotkeySettings hotkeys;
+        int SEEK_STEP_SECONDS = 10;
         UISettings ui;
         AutoplayerTimingAccuracy autoplayer_timing;
         std::map<std::string, std::map<std::string, std::string>> key_mappings;

@@ -972,12 +972,12 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
             bx, Layout::PB_ROW1_Y, Layout::PB_BTN_WIDTH, Layout::PB_BTN_HEIGHT,
             hWnd, reinterpret_cast<HMENU>(ID_BTN_RESTART), g_hInst, nullptr);
         bx = Layout::PBASIC_X + 20;
-        CreateWindowW(L"button", L"Skip+10",
+        CreateWindowW(L"button", L"Fast Forward",
             WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
             bx, Layout::PB_ROW2_Y, Layout::PB_BTN_WIDTH, Layout::PB_BTN_HEIGHT,
             hWnd, reinterpret_cast<HMENU>(ID_BTN_SKIP), g_hInst, nullptr);
         bx += Layout::PB_BTN_WIDTH + Layout::PB_BTN_GAP;
-        CreateWindowW(L"button", L"Rew-10",
+        CreateWindowW(L"button", L"Rewind",
             WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
             bx, Layout::PB_ROW2_Y, Layout::PB_BTN_WIDTH, Layout::PB_BTN_HEIGHT,
             hWnd, reinterpret_cast<HMENU>(ID_BTN_REW), g_hInst, nullptr);
@@ -1570,8 +1570,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
                     MessageBoxA(hWnd, "Please load a MIDI file first.", "Error", MB_OK | MB_ICONERROR);
                     break;
                 }
-                using namespace std::chrono_literals;
-                g_player->skip(10s);
+                g_player->skip(std::chrono::seconds(midi::Config::getInstance().SEEK_STEP_SECONDS));
             }
             break;
 
@@ -1585,8 +1584,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
                     MessageBoxA(hWnd, "Please load a MIDI file first.", "Error", MB_OK | MB_ICONERROR);
                     break;
                 }
-                using namespace std::chrono_literals;
-                g_player->rewind(10s);
+                g_player->rewind(std::chrono::seconds(midi::Config::getInstance().SEEK_STEP_SECONDS));
             }
             break;
 
@@ -2018,6 +2016,7 @@ int WINAPI wWinMain(
     std::cout << "  Play/Pause:     " << getReadableKey(cfg.hotkeys.PLAY_PAUSE_KEY) << "\n";
     std::cout << "  Rewind:         " << getReadableKey(cfg.hotkeys.REWIND_KEY) << "\n";
     std::cout << "  Skip:           " << getReadableKey(cfg.hotkeys.SKIP_KEY) << "\n";
+    std::cout << "  Rewind/Skip:    " << cfg.SEEK_STEP_SECONDS << "s per step\n";
     std::cout << "  Speed up:       " << getReadableKey(cfg.hotkeys.SPEED_UP_KEY) << "\n";
     std::cout << "  Speed down:     " << getReadableKey(cfg.hotkeys.SPEED_DOWN_KEY) << "\n";
     std::cout << "  Play Stop:      " << getReadableKey(cfg.hotkeys.EMERGENCY_EXIT_KEY) << "\n";

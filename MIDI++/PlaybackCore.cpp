@@ -24,6 +24,23 @@ HANDLE VirtualPianoPlayer::command_event = nullptr;
 HANDLE VirtualPianoPlayer::waitable_timer = nullptr;
 double g_totalSongSeconds = 0.0;
 
+namespace {
+    constexpr auto kInitialTimelineBuffer = std::chrono::milliseconds(50);
+
+    std::chrono::nanoseconds timeline_to_song_pos(std::chrono::nanoseconds t) noexcept {
+        if (t < std::chrono::nanoseconds::zero())
+            return t + std::chrono::duration_cast<std::chrono::nanoseconds>(
+                kInitialTimelineBuffer);
+        return t;
+    }
+
+    std::chrono::nanoseconds song_pos_to_timeline(std::chrono::nanoseconds s) noexcept {
+        if (s <= std::chrono::nanoseconds::zero())
+            return -std::chrono::duration_cast<std::chrono::nanoseconds>(
+                kInitialTimelineBuffer);
+        return s;
+    }
+}
 
 // We store this factor once we know the CPU frequency:
 // cyclesToNs = (1e9 / rdtsc_timer_get_frequency())
@@ -1718,11 +1735,11 @@ void VirtualPianoPlayer::hotkey_listener() {
         }
         if (rewindDown && !wasRewind) {
             // std::cout << "[DEBUG] F2 pressed (REWIND)\n";
-            rewind(std::chrono::seconds(10));
+            rewind(std::chrono::seconds(midi::Config::getInstance().SEEK_STEP_SECONDS));
         }
         if (skipDown && !wasSkip) {
             // std::cout << "[DEBUG] F3 pressed (SKIP)\n";
-            skip(std::chrono::seconds(10));
+            skip(std::chrono::seconds(midi::Config::getInstance().SEEK_STEP_SECONDS));
         }
         if (emergencyDown && !wasEmergency) {
             // std::cout << "[DEBUG] F4 pressed (EMERGENCY EXIT)\n";
@@ -1875,12 +1892,12 @@ void VirtualPianoPlayer::skip(std::chrono::seconds duration) {
     auto skip_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
 
     if (!playback_started.load(std::memory_order_acquire)) {
-        total_adjusted_time += skip_ns;
-        if (total_adjusted_time < std::chrono::nanoseconds(0)) {
-            total_adjusted_time = std::chrono::nanoseconds(0);
-        }
-        buffer_index.store(find_next_event_index(total_adjusted_time),
-                           std::memory_order_release);
+        auto s = timeline_to_song_pos(total_adjusted_time);
+        s += skip_ns;
+
+        total_adjusted_time = song_pos_to_timeline(s);
+        buffer_index.store(find_next_event_index(total_adjusted_time), std::memory_order_release);
+
         return;
     }
 
@@ -1889,12 +1906,10 @@ void VirtualPianoPlayer::skip(std::chrono::seconds duration) {
 
     if (song_ended) {
         restart_song();
-        total_adjusted_time += skip_ns;
-        if (total_adjusted_time < std::chrono::nanoseconds(0)) {
-            total_adjusted_time = std::chrono::nanoseconds(0);
-        }
-        buffer_index.store(find_next_event_index(total_adjusted_time),
-                           std::memory_order_release);
+        auto s = timeline_to_song_pos(total_adjusted_time);
+        s += skip_ns;
+        total_adjusted_time = song_pos_to_timeline(s);
+        buffer_index.store(find_next_event_index(total_adjusted_time), std::memory_order_release);
         last_resume_tsc = __rdtsc();
     }
     else {
@@ -1906,6 +1921,21 @@ void VirtualPianoPlayer::skip(std::chrono::seconds duration) {
 void VirtualPianoPlayer::rewind(std::chrono::seconds duration) {
     release_all_keys();
     auto rewind_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
+
+    if (!playback_started.load(std::memory_order_acquire)) {
+        auto s = timeline_to_song_pos(total_adjusted_time);
+        if (rewind_ns >= s) {
+            s = std::chrono::nanoseconds::zero();
+        }
+        else {
+            s -= rewind_ns;
+        }
+
+        total_adjusted_time = song_pos_to_timeline(s);
+        buffer_index.store(find_next_event_index(total_adjusted_time), std::memory_order_release);
+
+        return;
+    }
 
     bool ended = (buffer_index.load(std::memory_order_acquire) >= note_buffer.size()) &&
                  playback_started.load(std::memory_order_acquire);

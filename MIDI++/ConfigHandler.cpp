@@ -126,6 +126,9 @@ namespace midi {
             volume.validate();
             auto_transpose.validate();
             hotkeys.validate();
+            if (SEEK_STEP_SECONDS < 1 || SEEK_STEP_SECONDS > 86400) {
+                throw ConfigException("SEEK_STEP_SECONDS must be between 1 and 86400");
+            }
             autoplayer_timing.validate();
             validateKeyMappings();
         }
@@ -303,6 +306,7 @@ namespace midi {
             {"VELOCITY_KEYPRESS_MODIFIER", c.playback.VELOCITY_KEYPRESS_MODIFIER},
             {"CUSTOM_VELOCITY_CURVES", json::array()},
             {"PLAYLIST_FILES", c.playlistFiles},
+            {"SEEK_STEP_SECONDS", c.SEEK_STEP_SECONDS},
             {"UI_SETTINGS", c.ui}
         };
 
@@ -352,6 +356,14 @@ namespace midi {
             }
         }
 
+        if (j.contains("SEEK_STEP_SECONDS")) {
+            j.at("SEEK_STEP_SECONDS").get_to(c.SEEK_STEP_SECONDS);
+        } else if (j.contains("SEEK_SETTINGS") && j["SEEK_SETTINGS"].is_object()) {
+            c.SEEK_STEP_SECONDS = j["SEEK_SETTINGS"].value("STEP_SECONDS", 10);
+        } else {
+            c.SEEK_STEP_SECONDS = 10;
+        }
+
         // Read UI settings
         if (j.contains("UI_SETTINGS")) {
             j.at("UI_SETTINGS").get_to(c.ui);
@@ -385,6 +397,8 @@ namespace midi {
 
         // UI settings
         ui = { true }; // alwaysOnTop
+
+        SEEK_STEP_SECONDS = 10;
 
         // Hotkey settings
         hotkeys = {
