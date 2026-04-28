@@ -184,7 +184,7 @@ bool SplashScreen::Initialize(HINSTANCE hInstance) {
     int y = (screenH - m_height) / 2;
 
     m_hwnd = CreateWindowEx(
-        WS_EX_TOPMOST | WS_EX_LAYERED,
+        WS_EX_LAYERED,
         L"MIDI++SplashScreen",
         L"MIDI++",
         WS_POPUP,
